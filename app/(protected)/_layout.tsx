@@ -1,11 +1,30 @@
-import { Stack } from "expo-router";
+import { TabBar } from "@/components/TabBar";
+import { Tabs } from "expo-router";
 
 export default function ProtectedLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    />
+    <Tabs tabBar={(props) => <TabBar {...props} />}>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Home",
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="shifts/index"
+        options={{
+          title: "Shifts",
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/index"
+        options={{
+          title: "Settings",
+          headerShown: false,
+        }}
+      />
+    </Tabs>
   );
 }

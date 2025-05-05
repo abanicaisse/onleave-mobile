@@ -11,6 +11,7 @@ export default function Index() {
         justifyContent: "center",
         alignItems: "center",
       }}
+      className="bg-background"
     >
       <Text className="mb-8">Home page</Text>
       <Button onPress={() => router.navigate("/login")}>Go to Login</Button>
