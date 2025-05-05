@@ -1,6 +1,9 @@
+import { Button } from "@react-navigation/elements";
+import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 
 export default function Index() {
+  const router = useRouter();
   return (
     <View
       style={{
@@ -9,7 +12,8 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Home page</Text>
+      <Text className="mb-8">Home page</Text>
+      <Button onPress={() => router.navigate("/login")}>Go to Login</Button>
     </View>
   );
 }
