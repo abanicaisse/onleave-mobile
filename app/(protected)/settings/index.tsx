@@ -1,13 +1,7 @@
 import { useRouter } from "expo-router";
-import {
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+
+import { StatusBar } from "expo-status-bar";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
@@ -15,8 +9,12 @@ export default function Index() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <ScrollView className="w-full h-full flex flex-col mr-2">
+      <StatusBar style="light" backgroundColor="#007aff" />
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: "#007aff" }}
+        edges={["top"]}
+      >
+        <ScrollView className="w-full bg-background h-full flex flex-col mr-2 px-1">
           <View className="w-full flex flex-col gap-4 mb-8">
             <View className="w-full flex flex-col gap-2 p-4">
               <Text className="text-[1.5rem] text-heading-text-color font-semibold">
@@ -219,6 +217,13 @@ export default function Index() {
         </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
+
+    // <SafeAreaProvider>
+
+    //   <SafeAreaView style={[styles.container]} edges={["top"]}>
+
+    //   </SafeAreaView>
+    // </SafeAreaProvider>
   );
 }
 
@@ -227,10 +232,3 @@ const Hr = () => {
     <View className="w-[95%] border-b-[1px] border-b-input-text-color mx-auto" />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: StatusBar.currentHeight,
-  },
-});
