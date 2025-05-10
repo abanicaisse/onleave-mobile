@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import "expo-dev-client";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
@@ -508,7 +509,7 @@ export default function Index() {
               <TouchableOpacity
                 style={styles.startShiftButton}
                 onPress={toggleShift}
-                className="bg-blue-500"
+                className="bg-primary-blue"
               >
                 <View className="flex-row items-center justify-center">
                   <Feather

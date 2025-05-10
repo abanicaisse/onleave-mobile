@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "y",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -33,10 +37,24 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": "true",
+          "locationPermission": "Allow $(PRODUCT_NAME) to use your location"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "928496d4-d060-429f-878f-1c2f47f19054"
+      }
     }
   }
 }
