@@ -44,6 +44,19 @@
           "requestLocationPermission": "true",
           "locationPermission": "Allow $(PRODUCT_NAME) to use your location"
         }
+      ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "sk.ey"
+        }
+      ],
+
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Show current location on map."
+        }
       ]
     ],
     "experiments": {

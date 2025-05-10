@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-export default function Index() {
+export default function SettingsPage() {
   const router = useRouter();
 
   return (

@@ -67,7 +67,7 @@ const mockLeaveRequests = [
   },
 ];
 
-export default function Index() {
+export default function HomePage() {
   const router = useRouter();
   const [selectedOrg, setSelectedOrg] = useState(mockOrganizations[0]);
   const [orgSelectorVisible, setOrgSelectorVisible] = useState(false);
