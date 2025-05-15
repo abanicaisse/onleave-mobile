@@ -7,68 +7,73 @@ import TabBarButton from "./TabBarButton";
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useTheme();
 
+  // Define the main routes that should appear in the tab bar
+  const mainRoutes = ["index", "shifts/index", "settings/index"];
+
   return (
     <View className="w-full flex flex-row justify-center items-center">
       <View style={styles.tabBar}>
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const label =
-            options.tabBarLabel !== undefined
-              ? options.tabBarLabel
-              : options.title !== undefined
-              ? options.title
-              : route.name;
+        {state.routes
+          .filter((route) => mainRoutes.includes(route.name))
+          .map((route, index) => {
+            const { options } = descriptors[route.key];
+            const label =
+              options.tabBarLabel !== undefined
+                ? options.tabBarLabel
+                : options.title !== undefined
+                ? options.title
+                : route.name;
 
-          const isFocused = state.index === index;
+            const isFocused = state.index === index;
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
+            const onPress = () => {
+              const event = navigation.emit({
+                type: "tabPress",
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name, route.params);
+              }
+            };
 
-          const onLongPress = () => {
-            navigation.emit({
-              type: "tabLongPress",
-              target: route.key,
-            });
-          };
+            const onLongPress = () => {
+              navigation.emit({
+                type: "tabLongPress",
+                target: route.key,
+              });
+            };
 
-          return (
-            <TabBarButton
-              key={route.name}
-              isFocused={isFocused}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              // icon={icon[route.name]?.(isFocused) || null}
-              label={String(label)}
-              routeName={route.name}
-              colors={colors}
-            />
-            // <PlatformPressable
-            //   key={route.name}
-            //   href={buildHref(route.name, route.params)}
-            //   accessibilityState={isFocused ? { selected: true } : {}}
-            //   accessibilityLabel={options.tabBarAccessibilityLabel}
-            //   testID={options.tabBarButtonTestID}
-            //   onPress={onPress}
-            //   onLongPress={onLongPress}
-            //   style={styles.tabBarItem}
-            // >
-            //   {icon[route.name](isFocused)}
+            return (
+              <TabBarButton
+                key={route.name}
+                isFocused={isFocused}
+                onPress={onPress}
+                onLongPress={onLongPress}
+                // icon={icon[route.name]?.(isFocused) || null}
+                label={String(label)}
+                routeName={route.name}
+                colors={colors}
+              />
+              // <PlatformPressable
+              //   key={route.name}
+              //   href={buildHref(route.name, route.params)}
+              //   accessibilityState={isFocused ? { selected: true } : {}}
+              //   accessibilityLabel={options.tabBarAccessibilityLabel}
+              //   testID={options.tabBarButtonTestID}
+              //   onPress={onPress}
+              //   onLongPress={onLongPress}
+              //   style={styles.tabBarItem}
+              // >
+              //   {icon[route.name](isFocused)}
 
-            //   <Text style={{ color: isFocused ? colors.primary : colors.text }}>
-            //     {label}
-            //   </Text>
-            // </PlatformPressable>
-          );
-        })}
+              //   <Text style={{ color: isFocused ? colors.primary : colors.text }}>
+              //     {label}
+              //   </Text>
+              // </PlatformPressable>
+            );
+          })}
       </View>
     </View>
   );

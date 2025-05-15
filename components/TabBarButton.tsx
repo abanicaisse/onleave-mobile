@@ -66,6 +66,9 @@ export default function TabBarButton({
       />
     ),
   };
+  // Since we're now filtering for only the main routes in TabBar.tsx,
+  // we can simply use the routeName directly
+
   return (
     <PlatformPressable
       key={routeName}

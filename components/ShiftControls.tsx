@@ -1,6 +1,14 @@
-import React, { memo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { memo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useShiftStore } from "../store/useShiftStore";
+import { checkLocationPermission } from "../utils/locationService";
 
 interface ShiftControlsProps {
   variant?: "default" | "compact";
@@ -14,23 +22,106 @@ function ShiftControlsComponent({ variant = "default" }: ShiftControlsProps) {
   const resumeShift = useShiftStore((state) => state.actions.resumeShift);
   const endShift = useShiftStore((state) => state.actions.endShift);
 
+  // Add loading state for each action
+  const [isStarting, setIsStarting] = useState(false);
+  const [isTakingBreak, setIsTakingBreak] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+
   const isCompact = variant === "compact";
 
   // Create memoized callbacks to prevent unnecessary re-renders
-  const handleStartShift = React.useCallback(() => {
-    startShift();
+  const handleStartShift = React.useCallback(async () => {
+    setIsStarting(true);
+    try {
+      // First check for location permission
+      const hasPermission = await checkLocationPermission();
+
+      if (!hasPermission) {
+        Alert.alert(
+          "Location Required",
+          "You can't start a shift without providing your location."
+        );
+        return; // Don't start the shift if location permission denied
+      }
+
+      // If we have permission, proceed with starting shift
+      await startShift();
+    } catch (error) {
+      console.error("Error starting shift:", error);
+      Alert.alert("Error", "Could not start your shift. Please try again.");
+    } finally {
+      setIsStarting(false);
+    }
   }, [startShift]);
 
-  const handleTakeBreak = React.useCallback(() => {
-    takeBreak();
+  const handleTakeBreak = React.useCallback(async () => {
+    setIsTakingBreak(true);
+    try {
+      // Check location permission before taking break
+      const hasPermission = await checkLocationPermission();
+
+      if (!hasPermission) {
+        Alert.alert(
+          "Location Required",
+          "You can't record a break without providing your location."
+        );
+        return;
+      }
+
+      await takeBreak();
+    } catch (error) {
+      console.error("Error taking break:", error);
+      Alert.alert("Error", "Could not start your break. Please try again.");
+    } finally {
+      setIsTakingBreak(false);
+    }
   }, [takeBreak]);
 
-  const handleResumeShift = React.useCallback(() => {
-    resumeShift();
+  const handleResumeShift = React.useCallback(async () => {
+    setIsResuming(true);
+    try {
+      // Check location permission before resuming
+      const hasPermission = await checkLocationPermission();
+
+      if (!hasPermission) {
+        Alert.alert(
+          "Location Required",
+          "You can't resume your shift without providing your location."
+        );
+        return;
+      }
+
+      await resumeShift();
+    } catch (error) {
+      console.error("Error resuming shift:", error);
+      Alert.alert("Error", "Could not resume your shift. Please try again.");
+    } finally {
+      setIsResuming(false);
+    }
   }, [resumeShift]);
 
-  const handleEndShift = React.useCallback(() => {
-    endShift();
+  const handleEndShift = React.useCallback(async () => {
+    setIsEnding(true);
+    try {
+      // Check location permission before ending shift
+      const hasPermission = await checkLocationPermission();
+
+      if (!hasPermission) {
+        Alert.alert(
+          "Location Required",
+          "You can't end your shift without providing your location."
+        );
+        return;
+      }
+
+      await endShift();
+    } catch (error) {
+      console.error("Error ending shift:", error);
+      Alert.alert("Error", "Could not end your shift. Please try again.");
+    } finally {
+      setIsEnding(false);
+    }
   }, [endShift]);
 
   if (status === "idle") {
@@ -39,10 +130,19 @@ function ShiftControlsComponent({ variant = "default" }: ShiftControlsProps) {
         style={[styles.container, isCompact ? styles.compactContainer : null]}
       >
         <TouchableOpacity
-          style={[styles.startButton, isCompact ? styles.compactButton : null]}
+          style={[
+            styles.startButton,
+            isCompact ? styles.compactButton : null,
+            isStarting ? styles.disabledButton : null,
+          ]}
           onPress={handleStartShift}
+          disabled={isStarting}
         >
-          <Text style={styles.buttonText}>Start Shift</Text>
+          {isStarting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Start Shift</Text>
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -58,17 +158,35 @@ function ShiftControlsComponent({ variant = "default" }: ShiftControlsProps) {
     >
       {status === "active" ? (
         <TouchableOpacity
-          style={[styles.breakButton, isCompact ? styles.compactButton : null]}
+          style={[
+            styles.breakButton,
+            isCompact ? styles.compactButton : null,
+            isTakingBreak ? styles.disabledButton : null,
+          ]}
+          disabled={isTakingBreak}
           onPress={handleTakeBreak}
         >
-          <Text style={styles.buttonText}>Take Break</Text>
+          {isTakingBreak ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Take Break</Text>
+          )}
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
-          style={[styles.resumeButton, isCompact ? styles.compactButton : null]}
+          style={[
+            styles.resumeButton,
+            isCompact ? styles.compactButton : null,
+            isResuming ? styles.disabledButton : null,
+          ]}
           onPress={handleResumeShift}
+          disabled={isResuming}
         >
-          <Text style={styles.buttonText}>Resume Shift</Text>
+          {isResuming ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Resume Shift</Text>
+          )}
         </TouchableOpacity>
       )}
 
@@ -76,11 +194,17 @@ function ShiftControlsComponent({ variant = "default" }: ShiftControlsProps) {
         style={[
           styles.endButton,
           isCompact ? styles.compactButton : null,
+          isEnding ? styles.disabledButton : null,
           { marginLeft: isCompact ? 0 : 10 },
         ]}
         onPress={handleEndShift}
+        disabled={isEnding}
       >
-        <Text style={styles.buttonText}>End Shift</Text>
+        {isEnding ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>End Shift</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -157,5 +281,8 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });

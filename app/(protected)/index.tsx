@@ -474,10 +474,16 @@ export default function HomePage() {
             {/* Use completed shifts from the store if available, otherwise fallback to mock data */}
             {(completedShifts.length > 0 ? completedShifts : mockShifts).map(
               (shift) => (
-                <View
+                <TouchableOpacity
                   key={shift.id}
                   style={styles.card}
                   className="bg-white p-4 mb-3"
+                  onPress={() => {
+                    // Only allow navigation to details for real shifts with location data
+                    if ("startLocation" in shift || "endLocation" in shift) {
+                      router.push(`/shifts/${shift.id}`);
+                    }
+                  }}
                 >
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center">
@@ -504,7 +510,44 @@ export default function HomePage() {
                       </Text>
                     )}
                   </View>
-                </View>
+
+                  {/* Show location information if available */}
+                  {"startLocation" in shift && shift.startLocation && (
+                    <View
+                      style={styles.locationContainer}
+                      className="mt-3 pt-2 border-t border-gray-100"
+                    >
+                      <Text className="text-xs text-gray-500 mb-1">
+                        <Text className="font-medium">Start:</Text>{" "}
+                        {shift.startLocation.latitude.toFixed(6)},{" "}
+                        {shift.startLocation.longitude.toFixed(6)}
+                      </Text>
+                      {"endLocation" in shift && shift.endLocation && (
+                        <Text className="text-xs text-gray-500">
+                          <Text className="font-medium">End:</Text>{" "}
+                          {shift.endLocation.latitude.toFixed(6)},{" "}
+                          {shift.endLocation.longitude.toFixed(6)}
+                        </Text>
+                      )}
+                      {"breakLocations" in shift &&
+                        shift.breakLocations &&
+                        shift.breakLocations.length > 0 && (
+                          <Text className="text-xs text-gray-500 mt-1">
+                            <Text className="font-medium">
+                              Breaks recorded:
+                            </Text>{" "}
+                            {shift.breakLocations.length}
+                          </Text>
+                        )}
+
+                      <View className="flex-row mt-2">
+                        <Text className="text-xs text-primary-blue">
+                          Tap to view detailed map →
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </TouchableOpacity>
               )
             )}
           </View>
@@ -650,5 +693,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+  },
+  locationContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "#f3f3f3",
+    paddingTop: 8,
+    marginTop: 8,
   },
 });

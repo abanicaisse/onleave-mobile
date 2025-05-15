@@ -19,6 +19,15 @@ export default function ProtectedLayout() {
         }}
       />
       <Tabs.Screen
+        name="shifts/[id]"
+        options={{
+          title: "Shift Details",
+          headerShown: false,
+          // Hide this route from the tab bar
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="settings/index"
         options={{
           title: "Settings",
