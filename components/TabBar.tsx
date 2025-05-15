@@ -7,6 +7,12 @@ import TabBarButton from "./TabBarButton";
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useTheme();
 
+  // For debugging - log current route
+  console.log("Current Tab Bar State:", {
+    index: state.index,
+    routes: state.routes.map((r) => r.name),
+  });
+
   // Define the main routes that should appear in the tab bar
   const mainRoutes = ["index", "shifts/index", "settings/index"];
 
@@ -24,7 +30,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 ? options.title
                 : route.name;
 
-            const isFocused = state.index === index;
+            // Check if current route name matches the actual active route name
+            const isFocused = state.routes[state.index].name === route.name;
 
             const onPress = () => {
               const event = navigation.emit({

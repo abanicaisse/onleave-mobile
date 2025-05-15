@@ -3,12 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import * as Location from "expo-location";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
-import MapView, {
-  Callout,
-  Marker,
-  PROVIDER_GOOGLE,
-  Region,
-} from "react-native-maps";
+import MapView, { Callout, Marker, Region } from "react-native-maps";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ShiftControls from "../../../components/ShiftControls";
 import { useShiftStore } from "../../../store/useShiftStore";
@@ -229,10 +224,10 @@ export default function ShiftsPage() {
         <View style={styles.container}>
           <MapView
             style={styles.map}
-            provider={PROVIDER_GOOGLE}
+            // provider={PROVIDER_GOOGLE}
             initialRegion={currentRegion}
-            showsUserLocation
-            showsMyLocationButton
+            showsUserLocation={true}
+            showsMyLocationButton={true}
             onRegionChangeComplete={onRegionChange}
             ref={mapRef}
           >

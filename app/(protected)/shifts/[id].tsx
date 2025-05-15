@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Callout, Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Callout, Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CompletedShift, useShiftStore } from "../../../store/useShiftStore";
 
@@ -155,7 +155,7 @@ export default function ShiftDetailPage() {
             <View style={styles.mapContainer}>
               <MapView
                 style={styles.map}
-                provider={PROVIDER_GOOGLE}
+                // provider={PROVIDER_GOOGLE}
                 initialRegion={getMapRegion()}
               >
                 {/* Shift start location */}
