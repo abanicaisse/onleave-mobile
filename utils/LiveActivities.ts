@@ -7,9 +7,11 @@ import { Platform } from "react-native";
  */
 
 export interface ShiftActivityData {
-  organizationName: string;
-  startTime: string;
+  organizationName?: string;
+  startTime?: string;
   elapsedTime?: string;
+  status?: string;
+  breakDuration?: string;
 }
 
 /**

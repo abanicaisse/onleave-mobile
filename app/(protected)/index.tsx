@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import "expo-dev-client";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { useShiftStore } from "../../store/useShiftStore";
 import {
   endShiftLiveActivity,
   isLiveActivitySupported,
@@ -71,167 +72,132 @@ export default function HomePage() {
   const router = useRouter();
   const [selectedOrg, setSelectedOrg] = useState(mockOrganizations[0]);
   const [orgSelectorVisible, setOrgSelectorVisible] = useState(false);
-  const [hasActiveShift, setHasActiveShift] = useState(false);
-  const [shiftStartTime, setShiftStartTime] = useState("");
-  const [shiftStartDate, setShiftStartDate] = useState<Date | null>(null);
-  const [currentTime, setCurrentTime] = useState("");
+  const [currentTime, setCurrentTime] = useState(""); // Get shift state from Zustand store using individual selectors to avoid unnecessary re-renders
+  const shiftStatus = useShiftStore((state) => state.status);
+  const shiftStartDate = useShiftStore((state) => state.startTime);
+  const breakStartTime = useShiftStore((state) => state.breakStartTime);
+  const totalBreakTime = useShiftStore((state) => state.totalBreakTime);
+  const breakHistory = useShiftStore((state) => state.breakHistory);
+  const completedShifts = useShiftStore((state) => state.completedShifts);
+
+  // Get actions from the store
+  const startShiftAction = useShiftStore((state) => state.actions.startShift);
+  const takeBreakAction = useShiftStore((state) => state.actions.takeBreak);
+  const resumeShiftAction = useShiftStore((state) => state.actions.resumeShift);
+  const endShiftAction = useShiftStore((state) => state.actions.endShift);
+
   const [elapsedTime, setElapsedTime] = useState("0h 0m 0s");
+  const [breakDuration, setBreakDuration] = useState("0h 0m 0s");
 
-  // New state variables for pause functionality
-  const [isPaused, setIsPaused] = useState(false);
-  const [pauseStartTime, setPauseStartTime] = useState<Date | null>(null);
-  const [pauseStartTimeString, setPauseStartTimeString] = useState("");
-  const [totalPausedTime, setTotalPausedTime] = useState(0); // in milliseconds
-  const [currentBreakDuration, setCurrentBreakDuration] = useState("0h 0m 0s");
-  const [breakHistory, setBreakHistory] = useState<
-    {
-      startTime: string;
-      endTime: string;
-      duration: string;
-    }[]
-  >([]);
-
+  // Memoize these functions to prevent unnecessary re-renders
   // Format duration in milliseconds to "Xh Ym Zs" format
-  const formatDuration = (durationMs: number): string => {
+  const formatDuration = useCallback((durationMs: number): string => {
     const hours = Math.floor(durationMs / (1000 * 60 * 60));
     const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
     return `${hours}h ${minutes}m ${seconds}s`;
-  };
-
-  const pauseShift = () => {
-    if (!isPaused && hasActiveShift) {
-      const now = new Date();
-      const pauseTimeString = formatTime(now);
-      setIsPaused(true);
-      setPauseStartTime(now);
-      setPauseStartTimeString(pauseTimeString);
-    }
-  };
-
-  const resumeShift = () => {
-    if (isPaused && hasActiveShift && pauseStartTime) {
-      const now = new Date();
-      const resumeTimeString = formatTime(now);
-
-      // Calculate how long this break was
-      const breakDurationMs = now.getTime() - pauseStartTime.getTime();
-      const breakDurationFormatted = formatDuration(breakDurationMs);
-
-      // Add to total paused time
-      setTotalPausedTime((prevTime) => prevTime + breakDurationMs);
-
-      // Add to break history
-      setBreakHistory((prevHistory) => [
-        ...prevHistory,
-        {
-          startTime: pauseStartTimeString,
-          endTime: resumeTimeString,
-          duration: breakDurationFormatted,
-        },
-      ]);
-
-      // Reset pause state
-      setIsPaused(false);
-      setPauseStartTime(null);
-      setPauseStartTimeString("");
-      setCurrentBreakDuration("0h 0m 0s");
-    }
-  };
-
-  // Calculate elapsed time and update every second
-  useEffect(() => {
-    if (!hasActiveShift || !shiftStartDate) return;
-
-    // If paused, don't run the timer that updates elapsed time
-    if (isPaused) return;
-
-    // Set initial times
-    const now = new Date();
-    updateElapsedTime(shiftStartDate, now);
-
-    // Update current time and elapsed time every second
-    const intervalId = setInterval(() => {
-      const currentDate = new Date();
-      setCurrentTime(formatTime(currentDate));
-      updateElapsedTime(shiftStartDate, currentDate);
-
-      // Update the Dynamic Island Live Activity if active on iOS
-      // Update live activity less frequently to avoid excessive updates
-      if (Platform.OS === "ios" && hasActiveShift) {
-        updateShiftLiveActivity({
-          organizationName: selectedOrg.name,
-          startTime: shiftStartTime,
-          elapsedTime: elapsedTime,
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [
-    hasActiveShift,
-    shiftStartDate,
-    shiftStartTime,
-    isPaused,
-    elapsedTime,
-    selectedOrg.name,
-  ]);
-
-  // Effect to track ongoing break duration
-  useEffect(() => {
-    if (!isPaused || !pauseStartTime) return;
-
-    // Update break duration every second
-    const breakIntervalId = setInterval(() => {
-      const now = new Date();
-      const breakDuration = now.getTime() - pauseStartTime.getTime();
-      setCurrentBreakDuration(formatDuration(breakDuration));
-    }, 1000);
-
-    return () => clearInterval(breakIntervalId);
-  }, [isPaused, pauseStartTime]);
-
-  // Initial time setup
-  useEffect(() => {
-    const now = new Date();
-    setCurrentTime(formatTime(now));
   }, []);
 
-  const updateElapsedTime = (startTime: Date, currentTime: Date) => {
-    if (
-      !startTime ||
-      !currentTime ||
-      isNaN(startTime.getTime()) ||
-      isNaN(currentTime.getTime())
-    ) {
-      setElapsedTime("0h 0m 0s");
-      return;
-    }
-
-    let diffMs = currentTime.getTime() - startTime.getTime();
-
-    // Subtract total paused time from the elapsed time
-    diffMs = diffMs - totalPausedTime;
-
-    // If currently paused, also subtract the current pause duration
-    if (isPaused && pauseStartTime) {
-      diffMs = diffMs - (currentTime.getTime() - pauseStartTime.getTime());
-    }
-
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-    setElapsedTime(`${hours}h ${minutes}m ${seconds}s`);
-  };
-
-  const formatTime = (date: Date): string => {
+  const formatTime = useCallback((date: Date): string => {
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const ampm = hours >= 12 ? "PM" : "AM";
     const formattedHours = hours % 12 || 12;
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
     return `${formattedHours}:${formattedMinutes} ${ampm}`;
-  };
+  }, []);
+
+  // Handle Live Activities for iOS
+  useEffect(() => {
+    const initializeLiveActivity = async () => {
+      if (!isLiveActivitySupported()) return;
+
+      if (shiftStatus === "active" && shiftStartDate) {
+        await startShiftLiveActivity({
+          organizationName: selectedOrg.name,
+          startTime: formatTime(shiftStartDate),
+          status: "Active",
+        });
+      } else if (shiftStatus === "break") {
+        await updateShiftLiveActivity({
+          organizationName: selectedOrg.name,
+          status: "On Break",
+        });
+      } else if (shiftStatus === "idle") {
+        await endShiftLiveActivity();
+      }
+    };
+
+    initializeLiveActivity();
+  }, [shiftStatus, selectedOrg.name, formatTime, shiftStartDate]);
+
+  // Keep reference to organizational name to prevent re-renders
+  const orgNameRef = useRef(selectedOrg.name);
+  useEffect(() => {
+    orgNameRef.current = selectedOrg.name;
+  }, [selectedOrg.name]);
+
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    if (shiftStatus !== "idle" && shiftStartDate) {
+      intervalId = setInterval(() => {
+        const now = new Date();
+        setCurrentTime(formatTime(now));
+
+        if (shiftStatus === "active") {
+          const elapsedMs =
+            now.getTime() - shiftStartDate.getTime() - totalBreakTime;
+          setElapsedTime(formatDuration(elapsedMs));
+
+          // Update Live Activity every minute (approximately)
+          if (
+            Platform.OS === "ios" &&
+            isLiveActivitySupported() &&
+            elapsedMs % 60000 < 1000
+          ) {
+            updateShiftLiveActivity({
+              organizationName: orgNameRef.current,
+              elapsedTime: formatDuration(elapsedMs),
+              status: "Active",
+            });
+          }
+        } else if (shiftStatus === "break" && breakStartTime) {
+          const breakMs = now.getTime() - breakStartTime.getTime();
+          setBreakDuration(formatDuration(breakMs));
+
+          // Update Live Activity for breaks (approximately)
+          if (
+            Platform.OS === "ios" &&
+            isLiveActivitySupported() &&
+            breakMs % 60000 < 1000
+          ) {
+            updateShiftLiveActivity({
+              organizationName: orgNameRef.current,
+              elapsedTime: formatDuration(
+                now.getTime() - shiftStartDate.getTime() - totalBreakTime
+              ),
+              breakDuration: formatDuration(breakMs),
+              status: "On Break",
+            });
+          }
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [
+    shiftStatus,
+    shiftStartDate,
+    breakStartTime,
+    totalBreakTime,
+    formatTime,
+    formatDuration,
+  ]);
+
+  // formatTime is now defined as a useCallback above
 
   const formatDate = (): string => {
     const options: Intl.DateTimeFormatOptions = {
@@ -241,48 +207,6 @@ export default function HomePage() {
       day: "numeric",
     };
     return new Date().toLocaleDateString("en-US", options);
-  };
-
-  const toggleShift = async () => {
-    if (!hasActiveShift) {
-      // Start a new shift
-      const now = new Date();
-      const startTime = formatTime(now);
-      setShiftStartTime(startTime);
-      setShiftStartDate(now);
-      setCurrentTime(startTime);
-
-      // Immediately update elapsed time (which will be 0h 0m)
-      updateElapsedTime(now, now);
-
-      // If on iOS, trigger dynamic island live activity
-      if (Platform.OS === "ios" && isLiveActivitySupported()) {
-        await startShiftLiveActivity({
-          organizationName: selectedOrg.name,
-          startTime: startTime,
-        });
-      }
-    } else {
-      // End the shift
-      if (Platform.OS === "ios" && isLiveActivitySupported()) {
-        await endShiftLiveActivity();
-      }
-
-      // Reset shift data
-      setShiftStartDate(null);
-      setShiftStartTime("");
-      setElapsedTime("0h 0m 0s");
-
-      // Reset pause-related data
-      setIsPaused(false);
-      setPauseStartTime(null);
-      setPauseStartTimeString("");
-      setTotalPausedTime(0);
-      setCurrentBreakDuration("0h 0m 0s");
-      setBreakHistory([]);
-    }
-
-    setHasActiveShift(!hasActiveShift);
   };
 
   const getStatusColor = (status: string): string => {
@@ -377,7 +301,7 @@ export default function HomePage() {
 
           {/* Ongoing Shift UI or Start Shift Button */}
           <View className="px-4 mt-2">
-            {hasActiveShift ? (
+            {shiftStatus !== "idle" ? (
               <View style={styles.activeShiftCard} className="bg-white p-4">
                 <View className="flex-row items-center justify-between mb-3">
                   <Text className="text-lg font-bold text-primary-blue">
@@ -386,21 +310,30 @@ export default function HomePage() {
                   <View className="flex-row">
                     {/* Pause/Resume Button */}
                     <TouchableOpacity
-                      onPress={isPaused ? resumeShift : pauseShift}
+                      onPress={() => {
+                        if (shiftStatus === "break") {
+                          resumeShiftAction();
+                        } else {
+                          takeBreakAction();
+                        }
+                      }}
                       style={[
                         styles.pauseResumeButton,
-                        { backgroundColor: isPaused ? "#00b300" : "#ffc107" },
+                        {
+                          backgroundColor:
+                            shiftStatus === "break" ? "#00b300" : "#ffc107",
+                        },
                       ]}
                       className="mr-2"
                     >
                       <Text className="text-white font-medium">
-                        {isPaused ? "Resume" : "Break"}
+                        {shiftStatus === "break" ? "Resume" : "Break"}
                       </Text>
                     </TouchableOpacity>
 
                     {/* End Shift Button */}
                     <TouchableOpacity
-                      onPress={toggleShift}
+                      onPress={() => endShiftAction()}
                       style={styles.endShiftButton}
                     >
                       <Text className="text-white font-medium">End Shift</Text>
@@ -425,7 +358,7 @@ export default function HomePage() {
                       </Text>
                       <View style={styles.timeBox}>
                         <Text className="text-primary-blue font-semibold">
-                          {shiftStartTime}
+                          {shiftStartDate && formatTime(shiftStartDate)}
                         </Text>
                       </View>
                     </View>
@@ -467,18 +400,18 @@ export default function HomePage() {
                 </View>
 
                 {/* Break Status */}
-                {isPaused && (
+                {shiftStatus === "break" && (
                   <View className="mt-3 bg-yellow-50 p-3 rounded-[.5rem]">
                     <View className="flex-row items-center justify-between">
                       <Text className="text-gray-600 font-medium">
                         Break in progress:
                       </Text>
                       <Text className="text-yellow-600 font-bold text-base">
-                        {currentBreakDuration}
+                        {breakDuration}
                       </Text>
                     </View>
                     <Text className="text-gray-500 text-sm mt-1">
-                      Started at: {pauseStartTimeString}
+                      Started at: {breakStartTime && formatTime(breakStartTime)}
                     </Text>
                   </View>
                 )}
@@ -486,19 +419,20 @@ export default function HomePage() {
                 {/* Break History */}
                 {breakHistory.length > 0 && (
                   <View className="mt-3 bg-white border border-gray-200 p-3 rounded-[.5rem]">
-                    <Text className="text-input-label-color font-medium mb-4">
+                    <Text className="text-gray-600 font-medium mb-4">
                       Break History:
                     </Text>
                     {breakHistory.map((breakItem, index) => (
                       <View
                         key={index}
-                        className="flex-row justify-between mb-2 pb-2 border-b border-light-gray"
+                        className="flex-row justify-between mb-2 pb-2 border-b border-gray-200"
                       >
-                        <Text className="text-input-label-color">
-                          {breakItem.startTime} - {breakItem.endTime}
+                        <Text className="text-gray-600">
+                          {formatTime(breakItem.startTime)} -{" "}
+                          {formatTime(breakItem.endTime)}
                         </Text>
                         <Text className="text-primary-blue font-medium">
-                          {breakItem.duration}
+                          {formatDuration(breakItem.duration)}
                         </Text>
                       </View>
                     ))}
@@ -508,7 +442,7 @@ export default function HomePage() {
             ) : (
               <TouchableOpacity
                 style={styles.startShiftButton}
-                onPress={toggleShift}
+                onPress={() => startShiftAction()}
                 className="bg-primary-blue"
               >
                 <View className="flex-row items-center justify-center">
@@ -537,32 +471,42 @@ export default function HomePage() {
               </TouchableOpacity>
             </View>
 
-            {mockShifts.map((shift) => (
-              <View
-                key={shift.id}
-                style={styles.card}
-                className="bg-white p-4 mb-3"
-              >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center">
-                    <View
-                      style={styles.iconContainer}
-                      className="bg-blue-100 mr-3"
-                    >
-                      <Feather name="calendar" size={18} color="#1e40af" />
+            {/* Use completed shifts from the store if available, otherwise fallback to mock data */}
+            {(completedShifts.length > 0 ? completedShifts : mockShifts).map(
+              (shift) => (
+                <View
+                  key={shift.id}
+                  style={styles.card}
+                  className="bg-white p-4 mb-3"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center">
+                      <View
+                        style={styles.iconContainer}
+                        className="bg-blue-100 mr-3"
+                      >
+                        <Feather name="calendar" size={18} color="#1e40af" />
+                      </View>
+                      <View>
+                        <Text className="text-base font-medium">
+                          {shift.date}
+                        </Text>
+                        <Text className="text-gray-500">
+                          {shift.startTime} - {shift.endTime}
+                        </Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text className="text-base font-medium">
-                        {shift.date}
+
+                    {/* Show the duration for completed shifts from our store */}
+                    {"duration" in shift && (
+                      <Text className="text-primary-blue font-medium text-sm">
+                        {formatDuration(shift.duration)}
                       </Text>
-                      <Text className="text-gray-500">
-                        {shift.startTime} - {shift.endTime}
-                      </Text>
-                    </View>
+                    )}
                   </View>
                 </View>
-              </View>
-            ))}
+              )
+            )}
           </View>
 
           {/* Leave Requests Section */}
@@ -650,38 +594,6 @@ const styles = StyleSheet.create({
   selectedItem: {
     backgroundColor: "#e6f7ff",
   },
-  activeShiftCard: {
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  endShiftButton: {
-    backgroundColor: "#fd1b1b",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-  },
-  pauseResumeButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-  },
-  timeContainer: {
-    flex: 1,
-    alignItems: "center",
-  },
-  timeBox: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  startShiftButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
   card: {
     borderRadius: 8,
     shadowColor: "#000",
@@ -694,6 +606,48 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeShiftCard: {
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  pauseResumeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  endShiftButton: {
+    backgroundColor: "#ff3b30",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  timeBox: {
+    padding: 4,
+    borderRadius: 4,
+    backgroundColor: "#f0f8ff",
+    minWidth: 80,
+    alignItems: "center",
+  },
+  startShiftButton: {
+    backgroundColor: "#007aff",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
