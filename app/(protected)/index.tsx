@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -604,6 +605,16 @@ export default function HomePage() {
                 </View>
               </View>
             ))}
+            <Pressable
+              className="w-full mt-3 mb-5 flex flex-row gap-4 justify-center items-center border border-input bg-primary-blue p-3 rounded-lg"
+              onPress={() => {
+                router.replace("/login");
+              }}
+            >
+              <Text className="text-[14px] text-white font-normal">
+                Login page
+              </Text>
+            </Pressable>
           </View>
         </ScrollView>
       </SafeAreaView>

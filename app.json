@@ -60,12 +60,12 @@
         {
           "locationWhenInUsePermission": "Show current location on map."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
     },
-
     "extra": {
       "router": {},
       "eas": {
