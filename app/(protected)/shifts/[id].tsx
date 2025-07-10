@@ -1,7 +1,9 @@
+import { formatDateTime, timeStampToDate } from "@/utils";
 import { Feather } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -11,30 +13,61 @@ import {
 } from "react-native";
 import MapView, { Callout, Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CompletedShift, useShiftStore } from "../../../store/useShiftStore";
+import { getShiftById } from "../../../actions/shifts.actions";
+import { EmptyState } from "../../../components/EmptyState";
+import { LoadingSpinner } from "../../../components/LoadingSpinner";
 
 export default function ShiftDetailPage() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [shift, setShift] = useState<CompletedShift | null>(null);
-  const completedShifts = useShiftStore((state) => state.completedShifts);
 
-  useEffect(() => {
-    if (id) {
-      const foundShift = completedShifts.find((s) => s.id === id);
-      setShift(foundShift || null);
-    }
-  }, [id, completedShifts]);
+  // Fetch shift data using react-query
+  const {
+    data: shift,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["shift", id],
+    queryFn: () => getShiftById(id as string),
+    enabled: !!id,
+  });
 
-  // Format duration for display
-  const formatDuration = (durationMs: number): string => {
-    const hours = Math.floor(durationMs / (1000 * 60 * 60));
-    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+  // Format duration for display (handle string duration from API)
+  const formatDuration = (durationString: string): string => {
+    // Assuming duration comes as "HH:mm:ss" format from API
+    if (!durationString) return "0h 0m 0s";
+
+    const parts = durationString.split(":");
+    if (parts.length !== 3) return durationString;
+
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    const seconds = parseInt(parts[2], 10);
+
     return `${hours}h ${minutes}m ${seconds}s`;
   };
 
-  if (!shift) {
+  // Format date for display
+  const formatDate = (date: Date): string => {
+    return new Date(date).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Format time for display
+  const formatTime = (date: Date): string => {
+    return new Date(date).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Show loading state
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
@@ -46,7 +79,30 @@ export default function ShiftDetailPage() {
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.centerContent}>
-          <Text>Shift not found</Text>
+          <LoadingSpinner size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error or not found state
+  if (error || !shift) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Feather name="arrow-left" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Shift Details</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.centerContent}>
+          <EmptyState
+            icon="calendar"
+            title="Shift not found"
+            description="The shift you're looking for could not be found."
+          />
         </View>
       </SafeAreaView>
     );
@@ -56,12 +112,32 @@ export default function ShiftDetailPage() {
   const getMapRegion = () => {
     const locations = [];
 
-    if (shift.startLocation) locations.push(shift.startLocation);
-    if (shift.endLocation) locations.push(shift.endLocation);
-    if (shift.breakLocations) {
-      shift.breakLocations.forEach((loc) => {
-        locations.push(loc.start);
-        locations.push(loc.end);
+    if (shift.startLocation) {
+      locations.push({
+        latitude: parseFloat(shift.startLocation.latitude),
+        longitude: parseFloat(shift.startLocation.longitude),
+      });
+    }
+    if (shift.endLocation) {
+      locations.push({
+        latitude: parseFloat(shift.endLocation.latitude),
+        longitude: parseFloat(shift.endLocation.longitude),
+      });
+    }
+    if (shift.breaks && shift.breaks.length > 0) {
+      shift.breaks.forEach((breakItem) => {
+        if (breakItem.breakStartLocation) {
+          locations.push({
+            latitude: parseFloat(breakItem.breakStartLocation.latitude),
+            longitude: parseFloat(breakItem.breakStartLocation.longitude),
+          });
+        }
+        if (breakItem.breakEndLocation) {
+          locations.push({
+            latitude: parseFloat(breakItem.breakEndLocation.latitude),
+            longitude: parseFloat(breakItem.breakEndLocation.longitude),
+          });
+        }
       });
     }
 
@@ -122,33 +198,40 @@ export default function ShiftDetailPage() {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Date:</Text>
-            <Text style={styles.infoValue}>{shift.date}</Text>
+            <Text style={styles.infoValue}>
+              {formatDateTime(timeStampToDate(shift.startTime!)!).dateDay}
+            </Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Time:</Text>
             <Text style={styles.infoValue}>
-              {shift.startTime} - {shift.endTime}
+              {formatDateTime(timeStampToDate(shift.startTime!)!).timeOnly} -{" "}
+              {shift.endTime
+                ? formatDateTime(timeStampToDate(shift.endTime!)!).timeOnly
+                : "In Progress"}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Duration:</Text>
             <Text style={styles.infoValue}>
-              {formatDuration(shift.duration)}
+              {shift.duration ? formatDuration(shift.duration) : "In Progress"}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Breaks:</Text>
             <Text style={styles.infoValue}>
-              {shift.breakCount} breaks ({formatDuration(shift.totalBreakTime)})
+              {shift.breaks ? shift.breaks.length : 0} breaks
             </Text>
           </View>
         </View>
 
         {/* Location Map */}
-        {(shift.startLocation || shift.endLocation || shift.breakLocations) && (
+        {(shift.startLocation ||
+          shift.endLocation ||
+          (shift.breaks && shift.breaks.length > 0)) && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Location Data</Text>
 
@@ -162,15 +245,15 @@ export default function ShiftDetailPage() {
                 {shift.startLocation && (
                   <Marker
                     coordinate={{
-                      latitude: shift.startLocation.latitude,
-                      longitude: shift.startLocation.longitude,
+                      latitude: parseFloat(shift.startLocation.latitude),
+                      longitude: parseFloat(shift.startLocation.longitude),
                     }}
                     pinColor="green"
                   >
                     <Callout>
                       <View>
                         <Text>Shift Started</Text>
-                        <Text>{shift.startTime}</Text>
+                        <Text>{formatTime(shift.startTime)}</Text>
                       </View>
                     </Callout>
                   </Marker>
@@ -180,53 +263,79 @@ export default function ShiftDetailPage() {
                 {shift.endLocation && (
                   <Marker
                     coordinate={{
-                      latitude: shift.endLocation.latitude,
-                      longitude: shift.endLocation.longitude,
+                      latitude: parseFloat(shift.endLocation.latitude),
+                      longitude: parseFloat(shift.endLocation.longitude),
                     }}
                     pinColor="red"
                   >
                     <Callout>
                       <View>
                         <Text>Shift Ended</Text>
-                        <Text>{shift.endTime}</Text>
+                        <Text>
+                          {shift.endTime
+                            ? formatTime(shift.endTime)
+                            : "In Progress"}
+                        </Text>
                       </View>
                     </Callout>
                   </Marker>
                 )}
 
                 {/* Break locations */}
-                {shift.breakLocations &&
-                  shift.breakLocations.map((location, index) => (
+                {shift.breaks &&
+                  shift.breaks.map((breakItem, index) => (
                     <React.Fragment key={`break-${index}`}>
-                      <Marker
-                        coordinate={{
-                          latitude: location.start.latitude,
-                          longitude: location.start.longitude,
-                        }}
-                        pinColor="#ffc107"
-                      >
-                        <Callout>
-                          <View>
-                            <Text>Break Started</Text>
-                            <Text>Break #{index + 1}</Text>
-                          </View>
-                        </Callout>
-                      </Marker>
+                      {breakItem.breakStartLocation && (
+                        <Marker
+                          coordinate={{
+                            latitude: parseFloat(
+                              breakItem.breakStartLocation.latitude
+                            ),
+                            longitude: parseFloat(
+                              breakItem.breakStartLocation.longitude
+                            ),
+                          }}
+                          pinColor="#ffc107"
+                        >
+                          <Callout>
+                            <View>
+                              <Text>Break Started</Text>
+                              <Text>Break #{index + 1}</Text>
+                              {breakItem.breakStartTime && (
+                                <Text>
+                                  {formatTime(breakItem.breakStartTime)}
+                                </Text>
+                              )}
+                            </View>
+                          </Callout>
+                        </Marker>
+                      )}
 
-                      <Marker
-                        coordinate={{
-                          latitude: location.end.latitude,
-                          longitude: location.end.longitude,
-                        }}
-                        pinColor="blue"
-                      >
-                        <Callout>
-                          <View>
-                            <Text>Break Ended</Text>
-                            <Text>Break #{index + 1}</Text>
-                          </View>
-                        </Callout>
-                      </Marker>
+                      {breakItem.breakEndLocation && (
+                        <Marker
+                          coordinate={{
+                            latitude: parseFloat(
+                              breakItem.breakEndLocation.latitude
+                            ),
+                            longitude: parseFloat(
+                              breakItem.breakEndLocation.longitude
+                            ),
+                          }}
+                          pinColor="blue"
+                        >
+                          <Callout>
+                            <View>
+                              <Text>Break Ended</Text>
+                              <Text>Break #{index + 1}</Text>
+                              {breakItem.breakEndTime && (
+                                <Text>
+                                  {formatTime(breakItem.breakEndTime)}
+                                </Text>
+                              )}
+                            </View>
+                          </Callout>
+                        </Marker>
+                      )}
                     </React.Fragment>
                   ))}
               </MapView>
@@ -239,23 +348,64 @@ export default function ShiftDetailPage() {
         )}
 
         {/* Break History */}
-        {shift.breakCount > 0 && shift.breakLocations && (
-          <View style={styles.card}>
+        {shift.breaks && shift.breaks.length > 0 && (
+          <View style={[styles.card, { marginBottom: 132 }]}>
             <Text style={styles.cardTitle}>Break History</Text>
 
-            {shift.breakLocations.map((location, index) => (
+            {shift.breaks.map((breakItem, index) => (
               <View key={`break-details-${index}`} style={styles.breakItem}>
                 <Text style={styles.breakTitle}>Break #{index + 1}</Text>
 
-                <Text style={styles.breakLocation}>
-                  Started at: {location.start.latitude.toFixed(6)},{" "}
-                  {location.start.longitude.toFixed(6)}
-                </Text>
+                {breakItem.breakStartTime && (
+                  <Text style={styles.breakLocation}>
+                    Started:{" "}
+                    {
+                      formatDateTime(
+                        timeStampToDate(breakItem.breakStartTime!)!
+                      ).timeOnly
+                    }
+                  </Text>
+                )}
 
-                <Text style={styles.breakLocation}>
-                  Ended at: {location.end.latitude.toFixed(6)},{" "}
-                  {location.end.longitude.toFixed(6)}
-                </Text>
+                {breakItem.breakStartLocation && (
+                  <Text style={styles.breakLocation}>
+                    Started at:{" "}
+                    {parseFloat(breakItem.breakStartLocation.latitude).toFixed(
+                      6
+                    )}
+                    ,{" "}
+                    {parseFloat(breakItem.breakStartLocation.longitude).toFixed(
+                      6
+                    )}
+                  </Text>
+                )}
+
+                {breakItem.breakEndTime && (
+                  <Text style={styles.breakLocation}>
+                    Ended:{" "}
+                    {
+                      formatDateTime(timeStampToDate(breakItem.breakEndTime!)!)
+                        .timeOnly
+                    }
+                  </Text>
+                )}
+
+                {breakItem.breakEndLocation && (
+                  <Text style={styles.breakLocation}>
+                    Ended at:{" "}
+                    {parseFloat(breakItem.breakEndLocation.latitude).toFixed(6)}
+                    ,{" "}
+                    {parseFloat(breakItem.breakEndLocation.longitude).toFixed(
+                      6
+                    )}
+                  </Text>
+                )}
+
+                {breakItem.breakDuration && (
+                  <Text style={styles.breakLocation}>
+                    Duration: {formatDuration(breakItem.breakDuration!)}
+                  </Text>
+                )}
               </View>
             ))}
           </View>
