@@ -1,7 +1,21 @@
+import { getUserDetails } from "@/actions/users.actions";
 import { TabBar } from "@/components/TabBar";
+import { useAccessControlManager } from "@/hooks/use-access-control-manager";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs } from "expo-router";
 
 export default function ProtectedLayout() {
+  const { accessControlData } = useAccessControlManager();
+
+  const { data: userDetails } = useQuery({
+    queryKey: ["user"],
+    queryFn: () => getUserDetails(accessControlData.user?.uid!),
+  });
+
+  console.log("User Details:", userDetails);
+
+  console.log("Access Control Data:", accessControlData);
+
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />}>
       <Tabs.Screen

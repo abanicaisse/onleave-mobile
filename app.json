@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "y",
+      "bundleIdentifier": "com.onleave.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -26,6 +26,7 @@
         "monochromeImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.onleave.mobile",
       "edgeToEdgeEnabled": true
     },
     "web": {
@@ -35,6 +36,22 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
+            "gradleVersion": "8.9"
+          },
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
       [
         "expo-splash-screen",
         {
@@ -61,7 +78,10 @@
           "locationWhenInUsePermission": "Show current location on map."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-build-properties",
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

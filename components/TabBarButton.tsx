@@ -39,7 +39,7 @@ export default function TabBarButton({
             ? require("@/assets/images/home-blue.png")
             : require("@/assets/images/home.png")
         }
-        className="w-[20px] h-[20px]"
+        style={{ width: 20, height: 20 }}
         alt="logo"
       />
     ),
@@ -50,7 +50,7 @@ export default function TabBarButton({
             ? require("@/assets/images/explore-blue.png")
             : require("@/assets/images/explore.png")
         }
-        className="w-[20px] h-[20px]"
+        style={{ width: 20, height: 20 }}
         alt="logo"
       />
     ),
@@ -61,7 +61,7 @@ export default function TabBarButton({
             ? require("@/assets/images/setting-blue.png")
             : require("@/assets/images/setting.png")
         }
-        className="w-[20px] h-[20px]"
+        style={{ width: 20, height: 20 }}
         alt="logo"
       />
     ),

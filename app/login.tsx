@@ -1,5 +1,13 @@
+import { getUserCustomClaims } from "@/actions/auth.actions";
+import { getUserOrgsDetails } from "@/actions/organizations.actions";
+import { auth } from "@/FirebaseConfig";
+import { useAccessControlManager } from "@/hooks/use-access-control-manager";
+import { useAuthStore } from "@/store/authStore";
+
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -15,6 +23,8 @@ import {
   View,
 } from "react-native";
 import * as yup from "yup";
+
+WebBrowser.maybeCompleteAuthSession();
 
 type LoginFormData = {
   email: string;
@@ -34,7 +44,10 @@ const loginSchema = yup.object({
 
 export default function Login() {
   const router = useRouter();
+  const { login } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleBtnSubmitting] = useState(false);
+  const { saveAccessControl } = useAccessControlManager();
 
   const {
     control,
@@ -48,21 +61,58 @@ export default function Login() {
     },
   });
 
-  const onSubmit = (data: LoginFormData) => {
+  const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    console.log("Login data submitted:", data);
+    try {
+      const response = await signInWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password
+      );
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      Alert.alert("Success", "Login successful!", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/"),
+      login(auth);
+
+      const token = await response.user.getIdToken();
+      const userClaims = await getUserCustomClaims(token!);
+
+      const userOrgs = await getUserOrgsDetails(100, 1).then(
+        (res) => res?.organizations || []
+      );
+
+      saveAccessControl({
+        user: {
+          uid: response.user.uid,
+          email: response.user.email || "",
+          photoURL: response.user.photoURL || undefined,
+          fullName: response.user.displayName || undefined,
         },
-      ]);
-    }, 1000);
+        appRole: userClaims.appRole,
+        orgRole: userClaims.orgRole,
+        orgId: userClaims.orgId,
+        orgName:
+          userOrgs?.find((org) => org.id === userClaims?.orgId)?.name || "",
+        orgLogo:
+          userOrgs?.find((org) => org.id === userClaims?.orgId)?.photoURL || "",
+        orgPlan:
+          userOrgs?.find((org) => org.id === userClaims?.orgId)?.plan || "Free",
+        organizations: userOrgs?.map((org) => ({
+          id: org.id,
+          name: org.name,
+          photoURL: org.photoURL || "",
+          plan: org.plan || "Free",
+        })),
+      });
+
+      Alert.alert("Login Successful");
+
+      router.replace("/");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Login Failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -191,12 +241,24 @@ export default function Login() {
             </View>
 
             {/* Google Sign In Button */}
-            <Pressable style={styles.googleButton}>
+            <Pressable
+              style={[
+                styles.googleButton,
+                isGoogleBtnSubmitting && styles.googleButtonDisabled,
+              ]}
+              // onPress={loginWithGoogle}
+              disabled={isGoogleBtnSubmitting}
+            >
               <Image
                 source={require("@/assets/images/google.png")}
                 style={styles.googleIcon}
               />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
+              <Text style={styles.googleButtonText}>
+                {" "}
+                {isGoogleBtnSubmitting
+                  ? "Signing In..."
+                  : "Continue with Google (Beta)"}
+              </Text>
             </Pressable>
 
             {/* Sign Up Link */}
@@ -400,6 +462,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#374151",
     fontWeight: "600",
+  },
+  googleButtonDisabled: {
+    backgroundColor: "#f3f4f6",
+    borderColor: "#d1d5db",
   },
   signUpContainer: {
     flexDirection: "row",
