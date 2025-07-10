@@ -1,7 +1,10 @@
 import { ConnectedHomeTopBar } from "@/components/ConnectedHomeTopBar";
+import { EmptyState } from "@/components/EmptyState";
 import { LeaveCard } from "@/components/LeaveCard";
 import { OngoingShift } from "@/components/OngoingShift";
 import { ShiftCard } from "@/components/ShiftCard";
+import { ShiftCardSkeleton } from "@/components/ShiftCardSkeleton";
+import { useQuery } from "@tanstack/react-query";
 import "expo-dev-client";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -16,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { getShifts } from "../../actions/shifts.actions";
 import { useShiftStore } from "../../store/useShiftStore";
 import {
   endShiftLiveActivity,
@@ -76,7 +80,21 @@ export default function HomePage() {
   const router = useRouter();
   const [selectedOrg, setSelectedOrg] = useState(mockOrganizations[0]);
   const [orgSelectorVisible, setOrgSelectorVisible] = useState(false);
-  const [currentTime, setCurrentTime] = useState(""); // Get shift state from Zustand store using individual selectors to avoid unnecessary re-renders
+  const [currentTime, setCurrentTime] = useState("");
+
+  // Fetch recent shifts using react-query
+  const {
+    data: shiftsData,
+    isLoading: isLoadingShifts,
+    error: shiftsError,
+  } = useQuery({
+    queryKey: ["shifts", "user", 1, 3], // target: "user", page: 1, limit: 3
+    queryFn: () => getShifts("user", 1, 3, "completed"),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Get shift state from Zustand store using individual selectors to avoid unnecessary re-renders
   const shiftStatus = useShiftStore((state) => state.status);
   const shiftStartDate = useShiftStore((state) => state.startTime);
   const breakStartTime = useShiftStore((state) => state.breakStartTime);
@@ -270,22 +288,56 @@ export default function HomePage() {
               </TouchableOpacity>
             </View>
 
-            {/* Use completed shifts from the store if available, otherwise fallback to mock data */}
-            {(completedShifts.length > 0 ? completedShifts : mockShifts).map(
-              (shift) => (
-                <ShiftCard
-                  key={shift.id}
-                  shift={shift}
-                  formatDuration={formatDuration}
-                  onPress={(shift) => {
-                    // Only allow navigation to details for real shifts with location data
-                    if ("startLocation" in shift || "endLocation" in shift) {
-                      router.push(`/shifts/${shift.id}`);
-                    }
-                  }}
-                />
-              )
+            {/* Loading state */}
+            {isLoadingShifts && (
+              <>
+                <ShiftCardSkeleton />
+                <ShiftCardSkeleton />
+                <ShiftCardSkeleton />
+              </>
             )}
+
+            {/* Error state */}
+            {shiftsError && !isLoadingShifts && (
+              <EmptyState
+                icon="alert-circle"
+                title="Unable to load shifts"
+                description="Please check your connection and try again."
+                iconColor="#ef4444"
+              />
+            )}
+
+            {/* Empty state */}
+            {!isLoadingShifts &&
+              !shiftsError &&
+              (!shiftsData?.shifts || shiftsData.shifts.length === 0) && (
+                <EmptyState
+                  icon="calendar"
+                  title="No recent shifts"
+                  description="Your recent work shifts will appear here once you start logging time."
+                />
+              )}
+
+            {/* Shifts data */}
+            {!isLoadingShifts &&
+              !shiftsError &&
+              shiftsData?.shifts &&
+              shiftsData.shifts.length > 0 && (
+                <>
+                  {shiftsData.shifts.map((shift) => (
+                    <ShiftCard
+                      key={shift.id}
+                      shift={shift}
+                      onPress={(shift) => {
+                        // Only allow navigation to details for real shifts with location data
+                        if ("startLocation" in shift && shift.startLocation) {
+                          router.push(`/shifts/${shift.id}`);
+                        }
+                      }}
+                    />
+                  ))}
+                </>
+              )}
           </View>
 
           {/* Leave Requests Section */}

@@ -1,6 +1,8 @@
+import { formatDateTime, timeStampToDate } from "@/utils";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { IShift } from "../types/shifts.types";
 
 interface LocationData {
   latitude: number;
@@ -11,35 +13,11 @@ interface LocationData {
   speed?: number;
 }
 
-interface MockShift {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-}
-
-interface CompletedShift {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  duration: number;
-  breakCount: number;
-  totalBreakTime: number;
-  startLocation?: LocationData;
-  endLocation?: LocationData;
-  breakLocations?: {
-    start: LocationData;
-    end: LocationData;
-  }[];
-}
-
-type Shift = MockShift | CompletedShift;
+type Shift = IShift;
 
 interface ShiftCardProps {
   shift: Shift;
-  formatDuration: (durationMs: number) => string;
+  formatDuration?: (durationMs: number) => string;
   onPress: (shift: Shift) => void;
 }
 
@@ -49,7 +27,20 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
   onPress,
 }) => {
   const hasLocationData = "startLocation" in shift || "endLocation" in shift;
-  const hasDuration = "duration" in shift;
+  // const hasDuration = "duration" in shift;
+
+  // Helper function to get duration
+  const getShiftDuration = (shift: Shift): string | null => {
+    if ("duration" in shift) {
+      if (typeof shift.duration === "number" && formatDuration) {
+        return formatDuration(shift.duration);
+      }
+      if (typeof shift.duration === "string") {
+        return shift.duration;
+      }
+    }
+    return null;
+  };
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(shift)}>
@@ -60,43 +51,51 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
               <Feather name="calendar" size={18} color="#1e40af" />
             </View>
             <View style={styles.shiftInfo}>
-              <Text style={styles.dateText}>{shift.date}</Text>
+              <Text style={styles.dateText}>
+                {formatDateTime(timeStampToDate(shift.startTime!)!).dateOnly ||
+                  "Invalid Date"}
+              </Text>
               <Text style={styles.timeText}>
-                {shift.startTime} - {shift.endTime}
+                {formatDateTime(timeStampToDate(shift.startTime!)!).timeOnly} -{" "}
+                {formatDateTime(timeStampToDate(shift.endTime!)!).timeOnly ||
+                  "Invalid Time"}
               </Text>
             </View>
           </View>
 
-          {/* Show the duration for completed shifts from our store */}
-          {hasDuration && (
-            <Text style={styles.durationText}>
-              {formatDuration((shift as CompletedShift).duration)}
-            </Text>
+          {/* Show the duration for completed shifts */}
+          {getShiftDuration(shift) && (
+            <Text style={styles.durationText}>{getShiftDuration(shift)}</Text>
           )}
         </View>
 
         {/* Show location information if available */}
-        {hasLocationData && (shift as CompletedShift).startLocation && (
+        {hasLocationData && "startLocation" in shift && shift.startLocation && (
           <View style={styles.locationContainer}>
             <Text style={styles.locationText}>
               <Text style={styles.locationLabel}>Start:</Text>{" "}
-              {(shift as CompletedShift).startLocation!.latitude.toFixed(6)},{" "}
-              {(shift as CompletedShift).startLocation!.longitude.toFixed(6)}
+              {typeof shift.startLocation.latitude === "string"
+                ? `${shift.startLocation.latitude}, ${shift.startLocation.longitude}`
+                : `${Number(shift.startLocation.latitude).toFixed(6)}, ${Number(
+                    shift.startLocation.longitude
+                  ).toFixed(6)}`}
             </Text>
-            {(shift as CompletedShift).endLocation && (
+            {"endLocation" in shift && shift.endLocation && (
               <Text style={styles.locationText}>
                 <Text style={styles.locationLabel}>End:</Text>{" "}
-                {(shift as CompletedShift).endLocation!.latitude.toFixed(6)},{" "}
-                {(shift as CompletedShift).endLocation!.longitude.toFixed(6)}
+                {typeof shift.endLocation.latitude === "string"
+                  ? `${shift.endLocation.latitude}, ${shift.endLocation.longitude}`
+                  : `${Number(shift.endLocation.latitude).toFixed(6)}, ${Number(
+                      shift.endLocation.longitude
+                    ).toFixed(6)}`}
               </Text>
             )}
-            {(shift as CompletedShift).breakLocations &&
-              (shift as CompletedShift).breakLocations!.length > 0 && (
-                <Text style={styles.locationTextWithMargin}>
-                  <Text style={styles.locationLabel}>Breaks recorded:</Text>{" "}
-                  {(shift as CompletedShift).breakLocations!.length}
-                </Text>
-              )}
+            {"breaks" in shift && shift.breaks && shift.breaks.length > 0 && (
+              <Text style={styles.locationTextWithMargin}>
+                <Text style={styles.locationLabel}>Breaks recorded:</Text>{" "}
+                {shift.breaks.length}
+              </Text>
+            )}
 
             <View style={styles.mapPromptContainer}>
               <Text style={styles.mapPromptText}>
