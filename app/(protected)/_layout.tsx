@@ -1,6 +1,7 @@
 import { getUserDetails } from "@/actions/users.actions";
 import { TabBar } from "@/components/TabBar";
 import { useAccessControlManager } from "@/hooks/use-access-control-manager";
+import { useAuthStore } from "@/store/authStore";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs } from "expo-router";
 
@@ -9,8 +10,12 @@ export default function ProtectedLayout() {
 
   const { data: userDetails } = useQuery({
     queryKey: ["user"],
-    queryFn: () => getUserDetails(accessControlData.user?.uid!),
+    queryFn: () => getUserDetails(auth?.currentUser?.uid!),
   });
+
+  const { auth } = useAuthStore();
+
+  console.log(auth?.currentUser);
 
   console.log("User Details:", userDetails);
 

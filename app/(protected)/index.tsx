@@ -1,3 +1,4 @@
+import { ConnectedHomeTopBar } from "@/components/ConnectedHomeTopBar";
 import { Feather } from "@expo/vector-icons";
 import "expo-dev-client";
 import { useRouter } from "expo-router";
@@ -230,70 +231,9 @@ export default function HomePage() {
         style={[styles.container, { backgroundColor: "#007aff" }]}
         edges={["top"]}
       >
-        <ScrollView className="flex-1 bg-gray-50">
+        <ScrollView style={styles.scrollView}>
           {/* Organization Selector */}
-          <View
-            style={styles.orgSelectorContainer}
-            className="bg-white pt-4 px-4 pb-3"
-          >
-            <View className="flex-row justify-between items-center">
-              <View>
-                <Text className="text-gray-500 text-sm font-medium">
-                  Organization
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setOrgSelectorVisible(!orgSelectorVisible)}
-                  className="flex-row items-center"
-                >
-                  <Text className="text-lg font-bold">{selectedOrg.name}</Text>
-                  <Feather
-                    name={orgSelectorVisible ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color="#333"
-                    className="ml-1"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View
-                style={styles.avatar}
-                className="h-10 w-10 bg-blue-100 items-center justify-center"
-              >
-                <Text className="text-primary-blue font-bold">AN</Text>
-              </View>
-            </View>
-
-            {orgSelectorVisible && (
-              <View style={styles.dropdownMenu} className="mt-3 bg-white p-2">
-                {mockOrganizations.map((org) => (
-                  <TouchableOpacity
-                    key={org.id}
-                    onPress={() => {
-                      setSelectedOrg(org);
-                      setOrgSelectorVisible(false);
-                    }}
-                    style={[
-                      styles.dropdownItem,
-                      selectedOrg.id === org.id ? styles.selectedItem : null,
-                    ]}
-                    className={`p-3 ${
-                      selectedOrg.id === org.id ? "bg-blue-50" : ""
-                    }`}
-                  >
-                    <Text
-                      className={`${
-                        selectedOrg.id === org.id
-                          ? "text-primary-blue font-medium"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {org.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
+          <ConnectedHomeTopBar />
 
           {/* Today's Date */}
           <View className="px-4 mt-4">
@@ -627,14 +567,64 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f3f4f6",
   },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
   orgSelectorContainer: {
+    backgroundColor: "#ffffff",
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#e5e5e5",
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  orgSection: {
+    flex: 1,
+    marginRight: 16,
+  },
+  labelText: {
+    color: "#6b7280",
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  orgSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  orgName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    flex: 1,
+  },
+  chevronIcon: {
+    marginLeft: 4,
+  },
   avatar: {
+    height: 40,
+    width: 40,
     borderRadius: 20,
+    backgroundColor: "#dbeafe",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    color: "#2563eb",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   dropdownMenu: {
+    marginTop: 12,
+    backgroundColor: "#ffffff",
+    padding: 8,
     borderRadius: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -644,9 +634,19 @@ const styles = StyleSheet.create({
   },
   dropdownItem: {
     borderRadius: 4,
+    padding: 12,
   },
   selectedItem: {
     backgroundColor: "#e6f7ff",
+  },
+  dropdownOrgName: {
+    color: "#374151",
+    fontSize: 16,
+    fontWeight: "400",
+  },
+  selectedOrgName: {
+    color: "#2563eb",
+    fontWeight: "500",
   },
   card: {
     borderRadius: 8,

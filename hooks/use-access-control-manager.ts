@@ -20,24 +20,34 @@ export const useAccessControlManager = () => {
 
   // Initialize state from secure storage on mount
   useEffect(() => {
+    let mounted = true;
+
     const initializeAccessControl = async () => {
       try {
         setIsLoading(true);
         const storedData = await getAccessControlFromStorage();
-        if (storedData) {
+        if (mounted && storedData) {
           setAccessControlData(storedData);
-        } else {
+        } else if (mounted) {
           console.log("No access control data found in storage");
         }
       } catch (error) {
-        console.error("Error initializing access control data:", error);
+        if (mounted) {
+          console.error("Error initializing access control data:", error);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     initializeAccessControl();
-  }, [setAccessControlData]);
+
+    return () => {
+      mounted = false;
+    };
+  }, []); // Empty dependency array to run only once
 
   // Save access control data to both the store and secure storage
   const saveAccessControl = async (data: IAccessControlData) => {
