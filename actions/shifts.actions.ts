@@ -9,7 +9,7 @@ import { IShift, IShiftBreak } from "@/types/shifts.types";
 export interface IShiftResponse {
   id: string;
   orgId: string;
-  departmentId: string;
+  departmentId?: string;
   openedBy: string;
   openedByName?: string;
   openedByEmail?: string;
@@ -59,7 +59,7 @@ export interface IPaginationResponse {
 // Request payload types
 interface ICreateShiftPayload {
   orgId: string;
-  departmentId: string;
+  departmentId?: string;
   startTime?: Date;
   startLocation: {
     longitude: string;
@@ -69,7 +69,7 @@ interface ICreateShiftPayload {
 
 interface IStartShiftPayload {
   orgId: string;
-  departmentId: string;
+  departmentId?: string;
   startTime?: Date;
   startLocation: {
     longitude: string;

@@ -1,6 +1,13 @@
+import { useShiftStore } from "@/store/useShiftStore";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface BreakItem {
   startTime: Date;
@@ -39,6 +46,8 @@ export const OngoingShift: React.FC<OngoingShiftProps> = ({
   onEndShift,
   onStartShift,
 }) => {
+  const { isStartingShift, isTakingBreak, isResumingShift, isEndingShift } =
+    useShiftStore();
   return (
     <View style={styles.container}>
       {shiftStatus !== "idle" ? (
@@ -63,9 +72,26 @@ export const OngoingShift: React.FC<OngoingShiftProps> = ({
                   },
                 ]}
               >
-                <Text style={styles.buttonText}>
+                {/* <Text style={styles.buttonText}>
                   {shiftStatus === "break" ? "Resume" : "Break"}
-                </Text>
+                </Text> */}
+                {shiftStatus === "break" ? (
+                  <>
+                    {isResumingShift ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.buttonText}>Resume</Text>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {isTakingBreak ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.buttonText}>Break</Text>
+                    )}
+                  </>
+                )}
               </TouchableOpacity>
 
               {/* End Shift Button */}
@@ -73,7 +99,11 @@ export const OngoingShift: React.FC<OngoingShiftProps> = ({
                 onPress={onEndShift}
                 style={styles.endShiftButton}
               >
-                <Text style={styles.buttonText}>End Shift</Text>
+                {isEndingShift ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.buttonText}>End Shift</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -156,15 +186,19 @@ export const OngoingShift: React.FC<OngoingShiftProps> = ({
           style={styles.startShiftButton}
           onPress={onStartShift}
         >
-          <View style={styles.startShiftContent}>
-            <Feather
-              name="play-circle"
-              size={20}
-              color="white"
-              style={styles.playIcon}
-            />
-            <Text style={styles.startShiftText}>Start Shift</Text>
-          </View>
+          {isStartingShift ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <View style={styles.startShiftContent}>
+              <Feather
+                name="play-circle"
+                size={20}
+                color="white"
+                style={styles.playIcon}
+              />
+              <Text style={styles.startShiftText}>Start Shift</Text>
+            </View>
+          )}
         </TouchableOpacity>
       )}
     </View>

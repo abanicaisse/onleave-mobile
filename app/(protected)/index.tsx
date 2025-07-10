@@ -88,8 +88,8 @@ export default function HomePage() {
     isLoading: isLoadingShifts,
     error: shiftsError,
   } = useQuery({
-    queryKey: ["shifts", "user", 1, 3], // target: "user", page: 1, limit: 3
-    queryFn: () => getShifts("user", 1, 3, "completed"),
+    queryKey: ["shifts", "user", 1, 10], // target: "user", page: 1, limit: 10
+    queryFn: () => getShifts("user", 1, 10, "completed"),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -318,7 +318,6 @@ export default function HomePage() {
                 />
               )}
 
-            {/* Shifts data */}
             {!isLoadingShifts &&
               !shiftsError &&
               shiftsData?.shifts &&
