@@ -1,5 +1,7 @@
 import { ConnectedHomeTopBar } from "@/components/ConnectedHomeTopBar";
-import { Feather } from "@expo/vector-icons";
+import { LeaveCard } from "@/components/LeaveCard";
+import { OngoingShift } from "@/components/OngoingShift";
+import { ShiftCard } from "@/components/ShiftCard";
 import "expo-dev-client";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -241,165 +243,21 @@ export default function HomePage() {
           </View>
 
           {/* Ongoing Shift UI or Start Shift Button */}
-          <View className="px-4 mt-2">
-            {shiftStatus !== "idle" ? (
-              <View style={styles.activeShiftCard} className="bg-white p-4">
-                <View className="flex-row items-center justify-between mb-3">
-                  <Text className="text-lg font-bold text-primary-blue">
-                    Ongoing Shift
-                  </Text>
-                  <View className="flex-row">
-                    {/* Pause/Resume Button */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (shiftStatus === "break") {
-                          resumeShiftAction();
-                        } else {
-                          takeBreakAction();
-                        }
-                      }}
-                      style={[
-                        styles.pauseResumeButton,
-                        {
-                          backgroundColor:
-                            shiftStatus === "break" ? "#00b300" : "#ffc107",
-                        },
-                      ]}
-                      className="mr-2"
-                    >
-                      <Text className="text-white font-medium">
-                        {shiftStatus === "break" ? "Resume" : "Break"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* End Shift Button */}
-                    <TouchableOpacity
-                      onPress={() => endShiftAction()}
-                      style={styles.endShiftButton}
-                    >
-                      <Text className="text-white font-medium">End Shift</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View className="flex-row justify-between items-center mt-4">
-                  <View
-                    style={styles.timeContainer}
-                    className="flex flex-row items-center"
-                  >
-                    <Feather
-                      name="clock"
-                      size={32}
-                      color="#007aff"
-                      style={{ marginRight: 5 }}
-                    />
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">
-                        Start time
-                      </Text>
-                      <View style={styles.timeBox}>
-                        <Text className="text-primary-blue font-semibold">
-                          {shiftStartDate && formatTime(shiftStartDate)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View
-                    style={styles.timeContainer}
-                    className="flex flex-row items-center justify-end"
-                  >
-                    <Feather
-                      name="clock"
-                      size={32}
-                      color="#007aff"
-                      style={{ marginRight: 5 }}
-                    />
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">
-                        Current time
-                      </Text>
-                      <View style={styles.timeBox}>
-                        <Text className="text-primary-blue font-semibold">
-                          {currentTime}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Elapsed Time Display */}
-                <View className="mt-3 bg-blue-50 p-3 rounded-[.5rem]">
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-gray-600 font-medium">
-                      Total Shift Time:
-                    </Text>
-                    <Text className="text-primary-blue font-bold text-lg">
-                      {elapsedTime}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Break Status */}
-                {shiftStatus === "break" && (
-                  <View className="mt-3 bg-yellow-50 p-3 rounded-[.5rem]">
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-gray-600 font-medium">
-                        Break in progress:
-                      </Text>
-                      <Text className="text-yellow-600 font-bold text-base">
-                        {breakDuration}
-                      </Text>
-                    </View>
-                    <Text className="text-gray-500 text-sm mt-1">
-                      Started at: {breakStartTime && formatTime(breakStartTime)}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Break History */}
-                {breakHistory.length > 0 && (
-                  <View className="mt-3 bg-white border border-gray-200 p-3 rounded-[.5rem]">
-                    <Text className="text-gray-600 font-medium mb-4">
-                      Break History:
-                    </Text>
-                    {breakHistory.map((breakItem, index) => (
-                      <View
-                        key={index}
-                        className="flex-row justify-between mb-2 pb-2 border-b border-gray-200"
-                      >
-                        <Text className="text-gray-600">
-                          {formatTime(breakItem.startTime)} -{" "}
-                          {formatTime(breakItem.endTime)}
-                        </Text>
-                        <Text className="text-primary-blue font-medium">
-                          {formatDuration(breakItem.duration)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.startShiftButton}
-                onPress={() => startShiftAction()}
-                className="bg-primary-blue"
-              >
-                <View className="flex-row items-center justify-center">
-                  <Feather
-                    name="play-circle"
-                    size={20}
-                    color="white"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text className="text-white font-medium text-base">
-                    Start Shift
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
+          <OngoingShift
+            shiftStatus={shiftStatus}
+            shiftStartDate={shiftStartDate}
+            breakStartTime={breakStartTime}
+            breakHistory={breakHistory}
+            elapsedTime={elapsedTime}
+            breakDuration={breakDuration}
+            currentTime={currentTime}
+            formatTime={formatTime}
+            formatDuration={formatDuration}
+            onTakeBreak={takeBreakAction}
+            onResumeShift={resumeShiftAction}
+            onEndShift={endShiftAction}
+            onStartShift={startShiftAction}
+          />
 
           {/* Work Shifts Section */}
           <View className="mt-4 px-4">
@@ -415,80 +273,17 @@ export default function HomePage() {
             {/* Use completed shifts from the store if available, otherwise fallback to mock data */}
             {(completedShifts.length > 0 ? completedShifts : mockShifts).map(
               (shift) => (
-                <TouchableOpacity
+                <ShiftCard
                   key={shift.id}
-                  style={styles.card}
-                  className="bg-white p-4 mb-3"
-                  onPress={() => {
+                  shift={shift}
+                  formatDuration={formatDuration}
+                  onPress={(shift) => {
                     // Only allow navigation to details for real shifts with location data
                     if ("startLocation" in shift || "endLocation" in shift) {
                       router.push(`/shifts/${shift.id}`);
                     }
                   }}
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center">
-                      <View
-                        style={styles.iconContainer}
-                        className="bg-blue-100 mr-3"
-                      >
-                        <Feather name="calendar" size={18} color="#1e40af" />
-                      </View>
-                      <View>
-                        <Text className="text-base font-medium">
-                          {shift.date}
-                        </Text>
-                        <Text className="text-gray-500">
-                          {shift.startTime} - {shift.endTime}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Show the duration for completed shifts from our store */}
-                    {"duration" in shift && (
-                      <Text className="text-primary-blue font-medium text-sm">
-                        {formatDuration(shift.duration)}
-                      </Text>
-                    )}
-                  </View>
-
-                  {/* Show location information if available */}
-                  {"startLocation" in shift && shift.startLocation && (
-                    <View
-                      style={styles.locationContainer}
-                      className="mt-3 pt-2 border-t border-gray-100"
-                    >
-                      <Text className="text-xs text-gray-500 mb-1">
-                        <Text className="font-medium">Start:</Text>{" "}
-                        {shift.startLocation.latitude.toFixed(6)},{" "}
-                        {shift.startLocation.longitude.toFixed(6)}
-                      </Text>
-                      {"endLocation" in shift && shift.endLocation && (
-                        <Text className="text-xs text-gray-500">
-                          <Text className="font-medium">End:</Text>{" "}
-                          {shift.endLocation.latitude.toFixed(6)},{" "}
-                          {shift.endLocation.longitude.toFixed(6)}
-                        </Text>
-                      )}
-                      {"breakLocations" in shift &&
-                        shift.breakLocations &&
-                        shift.breakLocations.length > 0 && (
-                          <Text className="text-xs text-gray-500 mt-1">
-                            <Text className="font-medium">
-                              Breaks recorded:
-                            </Text>{" "}
-                            {shift.breakLocations.length}
-                          </Text>
-                        )}
-
-                      <View className="flex-row mt-2">
-                        <Text className="text-xs text-primary-blue">
-                          Tap to view detailed map →
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                />
               )
             )}
           </View>
@@ -505,46 +300,13 @@ export default function HomePage() {
             </View>
 
             {mockLeaveRequests.map((request) => (
-              <View
+              <LeaveCard
                 key={request.id}
-                style={styles.card}
-                className="bg-white p-4 mb-3"
-              >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center">
-                    <View
-                      style={styles.iconContainer}
-                      className="bg-purple-100 mr-3"
-                    >
-                      <Feather name="calendar" size={18} color="#7e22ce" />
-                    </View>
-                    <View>
-                      <Text className="text-base font-medium">
-                        {request.type}
-                      </Text>
-                      <Text className="text-gray-500">
-                        {request.startDate} - {request.endDate}
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    className={`px-3 py-1 rounded-[2rem] ${getStatusColor(
-                      request.status
-                    )}`}
-                  >
-                    <Text
-                      className={`text-xs font-medium ${
-                        getStatusColor(request.status).includes("bg-gray-100")
-                          ? "text-gray-800"
-                          : "text-white"
-                      }`}
-                    >
-                      {request.status}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+                request={request}
+                getStatusColor={getStatusColor}
+              />
             ))}
+
             <Pressable
               className="w-full mt-3 mb-5 flex flex-row gap-4 justify-center items-center border border-input bg-primary-blue p-3 rounded-lg"
               onPress={() => {
@@ -647,68 +409,5 @@ const styles = StyleSheet.create({
   selectedOrgName: {
     color: "#2563eb",
     fontWeight: "500",
-  },
-  card: {
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activeShiftCard: {
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  pauseResumeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  endShiftButton: {
-    backgroundColor: "#ff3b30",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  timeBox: {
-    padding: 4,
-    borderRadius: 4,
-    backgroundColor: "#f0f8ff",
-    minWidth: 80,
-    alignItems: "center",
-  },
-  startShiftButton: {
-    backgroundColor: "#007aff",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  locationContainer: {
-    borderTopWidth: 1,
-    borderTopColor: "#f3f3f3",
-    paddingTop: 8,
-    marginTop: 8,
   },
 });
