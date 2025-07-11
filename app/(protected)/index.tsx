@@ -1,9 +1,11 @@
 import { ConnectedHomeTopBar } from "@/components/ConnectedHomeTopBar";
 import { EmptyState } from "@/components/EmptyState";
 import { LeaveCard } from "@/components/LeaveCard";
+import { LeaveCardSkeleton } from "@/components/LeaveCardSkeleton";
 import { OngoingShift } from "@/components/OngoingShift";
 import { ShiftCard } from "@/components/ShiftCard";
 import { ShiftCardSkeleton } from "@/components/ShiftCardSkeleton";
+import { formatDateTime, timeStampToDate } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import "expo-dev-client";
 import { useRouter } from "expo-router";
@@ -19,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { getLeaveRequests } from "../../actions/leaves.actions";
 import { getShifts } from "../../actions/shifts.actions";
 import { useShiftStore } from "../../store/useShiftStore";
 import {
@@ -35,72 +38,40 @@ const mockOrganizations = [
   { id: "3", name: "Power Slap" },
 ];
 
-const mockShifts = [
-  {
-    id: "1",
-    date: "May 8, 2025",
-    startTime: "09:00 AM",
-    endTime: "05:00 PM",
-    status: "completed",
-  },
-  {
-    id: "2",
-    date: "May 7, 2025",
-    startTime: "09:00 AM",
-    endTime: "05:00 PM",
-    status: "completed",
-  },
-  {
-    id: "3",
-    date: "May 6, 2025",
-    startTime: "10:00 AM",
-    endTime: "06:00 PM",
-    status: "completed",
-  },
-];
-
-const mockLeaveRequests = [
-  {
-    id: "1",
-    type: "Vacation",
-    startDate: "May 15, 2025",
-    endDate: "May 22, 2025",
-    status: "Pending",
-  },
-  {
-    id: "2",
-    type: "Sick Leave",
-    startDate: "Apr 28, 2025",
-    endDate: "Apr 29, 2025",
-    status: "Approved",
-  },
-];
-
 export default function HomePage() {
   const router = useRouter();
-  const [selectedOrg, setSelectedOrg] = useState(mockOrganizations[0]);
-  const [orgSelectorVisible, setOrgSelectorVisible] = useState(false);
+  const [selectedOrg] = useState(mockOrganizations[0]);
+
   const [currentTime, setCurrentTime] = useState("");
 
-  // Fetch recent shifts using react-query
   const {
     data: shiftsData,
     isLoading: isLoadingShifts,
     error: shiftsError,
   } = useQuery({
-    queryKey: ["shifts", "user", 1, 10], // target: "user", page: 1, limit: 10
+    queryKey: ["shifts", "user", 1, 10],
     queryFn: () => getShifts("user", 1, 10, "completed"),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
-  // Get shift state from Zustand store using individual selectors to avoid unnecessary re-renders
+  const {
+    data: leavesData,
+    isLoading: isLoadingLeaves,
+    error: leavesError,
+  } = useQuery({
+    queryKey: ["leaves", "user", 1, 5],
+    queryFn: () => getLeaveRequests("user", 5, 1),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  // Get shift state from Zustand store
   const shiftStatus = useShiftStore((state) => state.status);
   const shiftStartDate = useShiftStore((state) => state.startTime);
   const breakStartTime = useShiftStore((state) => state.breakStartTime);
   const totalBreakTime = useShiftStore((state) => state.totalBreakTime);
   const breakHistory = useShiftStore((state) => state.breakHistory);
-  const completedShifts = useShiftStore((state) => state.completedShifts);
 
   // Get actions from the store
   const startShiftAction = useShiftStore((state) => state.actions.startShift);
@@ -112,7 +83,6 @@ export default function HomePage() {
   const [breakDuration, setBreakDuration] = useState("0h 0m 0s");
 
   // Memoize these functions to prevent unnecessary re-renders
-  // Format duration in milliseconds to "Xh Ym Zs" format
   const formatDuration = useCallback((durationMs: number): string => {
     const hours = Math.floor(durationMs / (1000 * 60 * 60));
     const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -153,7 +123,7 @@ export default function HomePage() {
     initializeLiveActivity();
   }, [shiftStatus, selectedOrg.name, formatTime, shiftStartDate]);
 
-  // Keep reference to organizational name to prevent re-renders
+  // Keep reference to organization name to prevent re-renders
   const orgNameRef = useRef(selectedOrg.name);
   useEffect(() => {
     orgNameRef.current = selectedOrg.name;
@@ -219,18 +189,6 @@ export default function HomePage() {
     formatDuration,
   ]);
 
-  // formatTime is now defined as a useCallback above
-
-  const formatDate = (): string => {
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    };
-    return new Date().toLocaleDateString("en-US", options);
-  };
-
   const getStatusColor = (status: string): string => {
     switch (status.toLowerCase()) {
       case "pending":
@@ -257,7 +215,9 @@ export default function HomePage() {
 
           {/* Today's Date */}
           <View className="px-4 mt-4">
-            <Text className="text-gray-500 font-medium">{formatDate()}</Text>
+            <Text className="text-gray-500 font-medium">
+              {formatDateTime(new Date()).dateOnly}
+            </Text>
           </View>
 
           {/* Ongoing Shift UI or Start Shift Button */}
@@ -288,7 +248,6 @@ export default function HomePage() {
               </TouchableOpacity>
             </View>
 
-            {/* Loading state */}
             {isLoadingShifts && (
               <>
                 <ShiftCardSkeleton />
@@ -297,7 +256,6 @@ export default function HomePage() {
               </>
             )}
 
-            {/* Error state */}
             {shiftsError && !isLoadingShifts && (
               <EmptyState
                 icon="alert-circle"
@@ -307,7 +265,6 @@ export default function HomePage() {
               />
             )}
 
-            {/* Empty state */}
             {!isLoadingShifts &&
               !shiftsError &&
               (!shiftsData?.shifts || shiftsData.shifts.length === 0) && (
@@ -350,13 +307,58 @@ export default function HomePage() {
               </TouchableOpacity>
             </View>
 
-            {mockLeaveRequests.map((request) => (
-              <LeaveCard
-                key={request.id}
-                request={request}
-                getStatusColor={getStatusColor}
+            {isLoadingLeaves && (
+              <>
+                <LeaveCardSkeleton />
+                <LeaveCardSkeleton />
+                <LeaveCardSkeleton />
+              </>
+            )}
+
+            {leavesError && !isLoadingLeaves && (
+              <EmptyState
+                icon="alert-circle"
+                title="Unable to load leave requests"
+                description="Please check your connection and try again."
+                iconColor="#ef4444"
               />
-            ))}
+            )}
+
+            {!isLoadingLeaves &&
+              !leavesError &&
+              (!leavesData?.leaveRequests ||
+                leavesData.leaveRequests.length === 0) && (
+                <EmptyState
+                  icon="file-text"
+                  title="No leave requests"
+                  description="Your leave requests will appear here once you submit them."
+                />
+              )}
+
+            {!isLoadingLeaves &&
+              !leavesError &&
+              leavesData?.leaveRequests &&
+              leavesData.leaveRequests.length > 0 && (
+                <>
+                  {leavesData.leaveRequests.map((request) => (
+                    <LeaveCard
+                      key={request.id}
+                      request={{
+                        id: request.id,
+                        type: request.leaveType || "Unknown",
+                        startDate: formatDateTime(
+                          timeStampToDate(request.startDate)!
+                        ).dateOnly,
+                        endDate: formatDateTime(
+                          timeStampToDate(request.endDate)!
+                        ).dateOnly,
+                        status: request.status || "pending",
+                      }}
+                      getStatusColor={getStatusColor}
+                    />
+                  ))}
+                </>
+              )}
 
             <Pressable
               className="w-full mt-3 mb-5 flex flex-row gap-4 justify-center items-center border border-input bg-primary-blue p-3 rounded-lg"

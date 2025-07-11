@@ -48,7 +48,7 @@ export async function openLeaveReq(
       throw new Error("Organization ID is required to open a leave request");
     }
 
-    const response = await axios.post(`/api/leaves`, leaveReqPayload, {
+    const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/leaves`, leaveReqPayload, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -75,7 +75,7 @@ export async function getSpecificLeaveReq(
   const authToken = await auth.currentUser?.getIdToken();
 
   try {
-    const response = await axios.get(`/api/leaves/${leaveId}`, {
+    const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/leaves/${leaveId}`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -107,7 +107,7 @@ export async function getLeaveRequests(
     const { orgId } = await getUserCustomClaims(authToken);
 
     const response = await axios.get(
-      `/api/leaves?userId=${userId}&orgId=${orgId}&target=${target}&limit=${limit}&page=${page}`,
+      `${process.env.EXPO_PUBLIC_API_URL}/leaves?userId=${userId}&orgId=${orgId}&target=${target}&limit=${limit}&page=${page}`,
       {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -137,7 +137,7 @@ export const updateLeaveReq = async (
 
   try {
     const response = await axios.put(
-      `/api/leaves/${leaveId}`,
+      `${process.env.EXPO_PUBLIC_API_URL}/leaves/${leaveId}`,
       leaveDataToUpdate,
       {
         headers: {
